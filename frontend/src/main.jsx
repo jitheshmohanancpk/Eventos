@@ -13,7 +13,7 @@ import Footer from "./components/Footer";
 
 // Pages
 import Home from "./pages/Home";
-import EventDetails from "./pages/EventDetails";
+import EventDetails from "./pages/eventDetails";
 import About from './pages/About';
 import Gallery from './pages/Gallery';
 import Organizers from './pages/Organizers';
