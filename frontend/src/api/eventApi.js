@@ -1,6 +1,9 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// PRODUCTION FIX: 
+// If VITE_API_URL is set in Vercel, use it. 
+// Otherwise, default to localhost for local development.
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 /**
  * Fetches events with dynamic filters applied
@@ -8,7 +11,7 @@ const API_BASE_URL = 'http://localhost:5000/api';
  */
 export const fetchFilteredEvents = async (filters = {}) => {
   try {
-    // Axios maps JavaScript objects directly into clean ?search=Tech&city=Doha query parameters!
+    // Axios maps JavaScript objects directly into clean query parameters
     const response = await axios.get(`${API_BASE_URL}/events`, { params: filters });
     return response.data; // Returns { success, count, pagination, data: [...] }
   } catch (error) {
