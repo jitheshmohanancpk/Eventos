@@ -1,12 +1,17 @@
-// src/utils/api.js
 import axios from 'axios';
 
-// This pulls the VITE_API_URL from Vercel
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// HARDCODED: No environment variables, just the direct URL
+const API_BASE_URL = 'https://eventos-backend-crl1.onrender.com/api';
 
+/**
+ * Fetches events with dynamic filters applied
+ */
 export const fetchFilteredEvents = async (filters = {}) => {
-  // Your code already adds /api here, so the variable in Vercel 
-  // should just be the base URL
-  const response = await axios.get(`${API_BASE_URL}/api/events`, { params: filters });
-  return response.data;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/events`, { params: filters });
+    return response.data;
+  } catch (error) {
+    console.error("Error connecting to Render backend:", error.message);
+    throw error;
+  }
 };
