@@ -22,7 +22,10 @@ const EventDetails = () => {
 
     const fetchEvent = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/events/${id}`);
+        // PRODUCTION FIX: Use environment variable, fallback to localhost for development
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await axios.get(`${API_BASE_URL}/api/events/${id}`);
+        
         setEvent(res.data.data); 
       } catch (err) {
         console.error("Error fetching event details:", err);
