@@ -11,7 +11,6 @@ const EventDetails = () => {
   const [loading, setLoading] = useState(true);
   const [ticketCount, setTicketCount] = useState(1);
   
-  // Use the updated context methods
   const { wishlist, updateWishlist } = useWishlist();
 
   useEffect(() => {
@@ -21,14 +20,19 @@ const EventDetails = () => {
     }
 
     const fetchEvent = async () => {
+      // Use the environment variable, default to localhost for local development
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const requestUrl = `${API_BASE_URL}/api/events/${id}`;
+      
+      // CRITICAL DEBUG LOG: Open your browser console to see this URL
+      console.log("DEBUG: Requesting URL:", requestUrl);
+
       try {
-        // PRODUCTION FIX: Use environment variable, fallback to localhost for development
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await axios.get(`${API_BASE_URL}/api/events/${id}`);
-        
+        const res = await axios.get(requestUrl);
         setEvent(res.data.data); 
       } catch (err) {
-        console.error("Error fetching event details:", err);
+        console.error("DEBUG: Failed at URL:", err.config?.url);
+        console.error("Error details:", err);
       } finally {
         setLoading(false);
       }
@@ -36,20 +40,15 @@ const EventDetails = () => {
     fetchEvent();
   }, [id]);
 
-  // Integrated Toggle Logic using _id
   const handleToggleWishlist = (eventData) => {
     if (!eventData) return;
-    
     let newList;
     const exists = wishlist.find(item => item._id === eventData._id);
-    
     if (exists) {
       newList = wishlist.filter(item => item._id !== eventData._id);
     } else {
       newList = [...wishlist, eventData];
     }
-    
-    // Using the updateWishlist function ensures Navbar triggers re-render
     updateWishlist(newList); 
   };
 
@@ -74,7 +73,6 @@ const EventDetails = () => {
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-indigo-600 font-bold">
           <ArrowLeft size={20} /> Back
         </button>
-        
         <button 
           onClick={() => handleToggleWishlist(event)}
           className={`flex items-center gap-2 font-bold px-4 py-2 rounded-full border transition ${
@@ -99,7 +97,6 @@ const EventDetails = () => {
                <span className="text-slate-500 text-sm">Price per ticket</span>
                <span className="font-black text-slate-900">₹{unitPrice}</span>
             </div>
-
             <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-100">
               <span className="font-bold">Quantity</span>
               <div className="flex items-center gap-4">
@@ -108,7 +105,6 @@ const EventDetails = () => {
                 <button onClick={() => setTicketCount(t => t + 1)} className="p-2 bg-slate-100 rounded-lg"><Plus size={16}/></button>
               </div>
             </div>
-
             <div className="pt-6 mt-6 border-t border-dashed border-slate-200">
               <div className="flex justify-between mb-6">
                 <span className="font-black">Total Price</span>
