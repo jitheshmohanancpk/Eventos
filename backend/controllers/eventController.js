@@ -1,12 +1,29 @@
 const Event = require('../models/Event');
+const Category = require('../models/Category');
 const mongoose = require('mongoose');
 
 // @desc    Advanced Discovery Engine: Search, Filter, Sort & Paginate Events
 const getEvents = async (req, res, next) => {
   try {
     let query = {};
-    if (req.query.search) query.$text = { $search: req.query.search };
-    if (req.query.category) query.categoryId = req.query.category;
+
+    // 1. SEARCH: Text search (Ensure you have a text index on 'title' or 'name')
+    if (req.query.search) {
+      query.$text = { $search: req.query.search };
+    }
+
+    // 2. CATEGORY: Robust logic (Matches Name or ID)
+    if (req.query.category && req.query.category !== "") {
+      if (mongoose.Types.ObjectId.isValid(req.query.category)) {
+        query.categoryId = req.query.category;
+      } else {
+        // Find category by name if a string is provided
+        const cat = await Category.findOne({ name: { $regex: req.query.category, $options: 'i' } });
+        query.categoryId = cat ? cat._id : null;
+      }
+    }
+
+    // 3. OTHER FILTERS
     if (req.query.priceType) query.priceType = req.query.priceType;
     
     if (req.query.city) {
@@ -19,6 +36,7 @@ const getEvents = async (req, res, next) => {
       if (req.query.endDate) query.date.$lte = new Date(req.query.endDate);
     }
 
+    // 4. SORTING
     const sortOptions = {
       popular: { views: -1 },
       priceLowToHigh: { price: 1 },
@@ -28,6 +46,7 @@ const getEvents = async (req, res, next) => {
     };
     const sortBy = sortOptions[req.query.sort] || { createdAt: -1 };
 
+    // 5. PAGINATION
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
@@ -61,92 +80,54 @@ const getEvents = async (req, res, next) => {
 const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid Event ID format' });
-    }
-
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: 'Invalid ID' });
     const event = await Event.findById(id)
       .populate('categoryId', 'name description')
       .populate('organizerId', 'name email organizerProfile');
-
     if (!event) return res.status(404).json({ message: 'Event not found' });
-    
-    // Returning as { data: event } to match the structure your frontend expects
     res.status(200).json({ data: event });
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
+  } catch (error) { res.status(500).json({ message: 'Server Error', error: error.message }); }
 };
 
 // @desc    Create a new event
 const createEvent = async (req, res) => {
   try {
     const { title, description, categoryId, date, startTime, endTime, location, priceType, price, images, tags } = req.body;
-
     let lng = parseFloat(location?.geo?.coordinates?.[0]) || parseFloat(location?.geo?.lng);
     let lat = parseFloat(location?.geo?.coordinates?.[1]) || parseFloat(location?.geo?.lat);
-
-    if (isNaN(lng) || isNaN(lat)) {
-      return res.status(400).json({ message: 'Validation Error', error: 'Invalid coordinates' });
-    }
-
+    if (isNaN(lng) || isNaN(lat)) return res.status(400).json({ message: 'Invalid coordinates' });
     const newEvent = await Event.create({
       title, description, categoryId, organizerId: req.user._id, date, startTime, endTime,
       location: { ...location, geo: { type: 'Point', coordinates: [lng, lat] } },
-      priceType, 
-      price: priceType === 'free' ? 0 : price,
-      images: images || [], 
-      tags: tags || []
+      priceType, price: priceType === 'free' ? 0 : price,
+      images: images || [], tags: tags || []
     });
-
     res.status(201).json(newEvent);
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
+  } catch (error) { res.status(500).json({ message: 'Server Error', error: error.message }); }
 };
 
 // @desc    Update an event
 const updateEvent = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
-    
     let event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
-    
-    if (event.organizerId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-    
-    // FIX: Replaced { new: true } with { returnDocument: 'after' } to resolve Mongoose warning
-    event = await Event.findByIdAndUpdate(
-        req.params.id, 
-        req.body, 
-        { returnDocument: 'after', runValidators: true }
-    );
+    if (event.organizerId.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Not authorized' });
+    event = await Event.findByIdAndUpdate(req.params.id, req.body, { returnDocument: 'after', runValidators: true });
     res.json(event);
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
+  } catch (error) { res.status(500).json({ message: 'Server Error', error: error.message }); }
 };
 
 // @desc    Delete an event
 const deleteEvent = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) return res.status(400).json({ message: 'Invalid ID' });
-
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
-    
-    if (event.organizerId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-    
+    if (event.organizerId.toString() !== req.user._id.toString()) return res.status(403).json({ message: 'Not authorized' });
     await event.deleteOne();
     res.json({ message: 'Event removed successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
-  }
+  } catch (error) { res.status(500).json({ message: 'Server Error', error: error.message }); }
 };
 
 module.exports = { getEvents, getEventById, createEvent, updateEvent, deleteEvent };

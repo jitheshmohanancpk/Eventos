@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
 
-// Ensure models are registered to avoid 'Schema not registered' errors
-const Event = mongoose.model('Event');
+// 1. IMPORT MODELS
+// Note: It is best practice to require the model file directly
+const Event = require('../models/Event');
 require('../models/Category'); 
 
+// 2. IMPORT CONTROLLERS
 const { 
   getEvents, 
   getEventById, 
@@ -14,19 +15,22 @@ const {
   deleteEvent 
 } = require('../controllers/eventController');
 const { getCalendarData } = require('../controllers/engagementController');
+
+// 3. IMPORT MIDDLEWARE
 const { protect, authorizeRoles } = require('../middleware/auth');
 
 // ==========================================
-// 1. SPECIFIC PROTECTED ROUTES (MUST BE FIRST)
+// ROUTES
 // ==========================================
-// Placing /my-events above /:id prevents the router from 
-// mistaking 'my-events' for a MongoDB ObjectId.
+
+// --- SPECIFIC PROTECTED ROUTES ---
+// Must come before dynamic routes like /:id
 router.get('/my-events', protect, authorizeRoles('organizer'), async (req, res, next) => {
   try {
     const myEvents = await Event.find({ organizerId: req.user._id })
       .populate({
         path: 'categoryId',
-        select: 'name' // Explicitly select field to avoid errors
+        select: 'name'
       })
       .sort({ createdAt: -1 });
 
@@ -40,18 +44,15 @@ router.get('/my-events', protect, authorizeRoles('organizer'), async (req, res, 
   }
 });
 
-// ==========================================
-// 2. PUBLIC ROUTES
-// ==========================================
-router.get('/', getEvents);
-router.get('/:id', getEventById);
+// --- DYNAMIC ROUTES (Specific paths BEFORE generic :id) ---
+// Placing /calendar before /:id ensures Express doesn't mistake 'calendar' for an ID
 router.get('/:id/calendar', getCalendarData);
-
-// ==========================================
-// 3. DYNAMIC PROTECTED ROUTES (MUST BE LAST)
-// ==========================================
-router.post('/', protect, authorizeRoles('organizer'), createEvent);
+router.get('/:id', getEventById);
 router.put('/:id', protect, authorizeRoles('organizer'), updateEvent);
 router.delete('/:id', protect, authorizeRoles('organizer'), deleteEvent);
+
+// --- PUBLIC & BASE ROUTES ---
+router.get('/', getEvents);
+router.post('/', protect, authorizeRoles('organizer'), createEvent);
 
 module.exports = router;

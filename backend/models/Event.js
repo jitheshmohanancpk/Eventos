@@ -21,6 +21,12 @@ const eventSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    // --- NEW FIELD FOR ADMIN TOGGLE ---
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    // ----------------------------------
     date: {
       type: Date,
       required: [true, 'Please add an event date'],
@@ -58,7 +64,6 @@ const eventSchema = new mongoose.Schema(
           required: true,
         },
       },
-      // Moved capacity fields to the location level for better query performance
       capacity: { 
         type: Number 
       },
@@ -93,10 +98,10 @@ const eventSchema = new mongoose.Schema(
   }
 );
 
-// 1. Core Geospatial Indexing for distance-based queries
+// 1. Core Geospatial Indexing
 eventSchema.index({ 'location.geo': '2dsphere' });
 
-// 2. CRITICAL WEEK 2 FIX: Compound Text Index to enable high-speed global searches
+// 2. Compound Text Index
 eventSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 module.exports = mongoose.model('Event', eventSchema);

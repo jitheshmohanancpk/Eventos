@@ -1,15 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { createBrowserRouter, RouterProvider, Navigate, Outlet } from 'react-router-dom'; 
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'; 
 import './index.css';
 
 // Context Providers
-import { AuthProvider, useAuth } from './context/AuthContext'; 
+import { AuthProvider } from './context/AuthContext'; 
 import { WishlistProvider } from './context/WishlistContext';
 
 // Components & Layouts
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import ProtectedRoute from './components/ProtectedRoute';
 
 // Pages
 import Home from "./pages/Home";
@@ -29,20 +30,15 @@ import SavedEvents from './pages/SavedEvents';
 import OrganizersDetails from "./pages/OrganizersDetails";
 import Emailer from './pages/Emailer';
 import BookingSuccess from './pages/BookingSuccess';
+
+// Organizer Pages
 import OrganizerDashboard from './pages/Organizer/OrganizerDashboard';
 import AddEvent from './pages/Organizer/AddEvent';
 import EditEvent from "./pages/Organizer/EditEvent";
 
-const ProtectedRoute = ({ children, allowedRole }) => {
-  const { authenticated, loading, user } = useAuth();
-  
-  if (loading) return <div className="h-screen flex items-center justify-center">Loading...</div>;
-  if (!authenticated) return <Navigate to="/login" replace />;
-  if (allowedRole && user?.role?.toLowerCase() !== allowedRole.toLowerCase()) {
-    return <Navigate to="/" replace />;
-  }
-  return children;
-};
+// Admin Pages
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import AdminOrganizers from './pages/Admin/AdminOrganizers';
 
 const RootLayout = () => (
   <div className="min-h-screen flex flex-col bg-white">
@@ -68,7 +64,13 @@ const router = createBrowserRouter([
       { path: "events", element: <Events /> },
       { path: "venues", element: <Venues /> },
       { path: "venue/:id", element: <VenueDetails /> },
-      { path: "booking/:id", element: <Booking /> },
+      
+      // Protected Booking Route
+      { 
+        path: "booking/:id", 
+        element: <ProtectedRoute><Booking /></ProtectedRoute> 
+      },
+      
       { path: "editprofile", element: <EditProfile /> },
       { path: "signup", element: <SignUp /> },
       { path: "login", element: <Login /> },
@@ -76,9 +78,21 @@ const router = createBrowserRouter([
       { path: "organizer/:id", element: <OrganizersDetails /> },
       { path: "emailer", element: <Emailer /> },
       { path: "booking-success", element: <BookingSuccess /> },
+      
+      // Organizer Routes
       { path: "dashboard", element: <ProtectedRoute allowedRole="organizer"><OrganizerDashboard /></ProtectedRoute> },
       { path: "add-event", element: <ProtectedRoute allowedRole="organizer"><AddEvent /></ProtectedRoute> },
-      { path: "edit-event/:id", element: <ProtectedRoute allowedRole="organizer"><EditEvent /></ProtectedRoute> }
+      { path: "edit-event/:id", element: <ProtectedRoute allowedRole="organizer"><EditEvent /></ProtectedRoute> },
+
+      // Admin Routes
+      { 
+        path: "admin/dashboard", 
+        element: <ProtectedRoute allowedRole="admin"><AdminDashboard /></ProtectedRoute> 
+      },
+      { 
+        path: "admin/organizers", 
+        element: <ProtectedRoute allowedRole="admin"><AdminOrganizers /></ProtectedRoute> 
+      }
     ],
   },
 ]);
@@ -92,3 +106,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </AuthProvider>
   </React.StrictMode>
 );
+

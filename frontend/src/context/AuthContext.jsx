@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
-const AuthContext = createContext(null);
+// ✅ FIX: Export AuthContext so it can be imported elsewhere if needed
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -17,13 +18,14 @@ export const AuthProvider = ({ children }) => {
         setUser(parsedUser);
         setToken(storedToken.replace(/['"]+/g, ''));
         setAuthenticated(true);
-      } catch (e) { localStorage.clear(); }
+      } catch (e) { 
+        localStorage.clear(); 
+      }
     }
     setLoading(false);
   }, []);
 
   const login = (userData, userToken) => {
-    // DEBUG: See if the role is actually arriving from your backend
     console.log("Logging in with user data:", userData); 
     
     const cleanToken = userToken?.replace(/['"]+/g, '');
@@ -46,9 +48,14 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={{ user, token, authenticated, loading, login, logout }}>
-      {!loading && children}
+      {/* Keep !loading logic here. 
+         Wait until auth check is done before rendering children 
+         to prevent unauthorized flickering. 
+      */}
+      {!loading ? children : <div className="h-screen flex items-center justify-center">Loading...</div>}
     </AuthContext.Provider>
   );
 };
 
+// Hook for easy access to AuthContext
 export const useAuth = () => useContext(AuthContext);

@@ -10,20 +10,26 @@ const app = express();
 
 // --- GLOBAL MIDDLEWARE ---
 app.use(cors());
-app.use(express.json()); // Required for JSON bodies
-app.use(express.urlencoded({ extended: true })); // Required for form-data/x-www-form-urlencoded
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true })); 
 
 // --- MODEL REGISTRATION ---
-// Ensure these files only export the Mongoose model, NO other logic
+// Ensure these paths match your folder structure
 require('./models/Category'); 
 require('./models/Event');
 require('./models/User'); 
 
 // --- ROUTES ---
-// We import routes here. 
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/events', require('./routes/eventRoutes'));
-app.use('/api/engagement', require('./routes/engagementRoutes'));
+const authRoutes = require('./routes/authRoutes');
+const eventRoutes = require('./routes/eventRoutes');
+const engagementRoutes = require('./routes/engagementRoutes');
+const adminRoutes = require('./routes/adminRoutes'); 
+
+// Register Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/engagement', engagementRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Root Test Route
 app.get('/', (req, res) => {
@@ -31,14 +37,11 @@ app.get('/', (req, res) => {
 });
 
 // --- GLOBAL ERROR HANDLER ---
-// This must be defined AFTER all routes
+// CRITICAL: This MUST be the last middleware defined
 app.use((err, req, res, next) => {
   console.error("--- GLOBAL ERROR HANDLER ---");
-  console.error("Error Name:", err.name);
-  console.error("Error Message:", err.message);
-  console.error("Stack Trace:", err.stack);
+  console.error("Error Details:", err.message);
 
-  // Return a clear JSON response instead of crashing the process
   res.status(err.status || 500).json({ 
     success: false, 
     message: err.message || 'Internal Server Error' 
@@ -57,7 +60,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB Database connected successfully!');
     app.listen(PORT, () => {
-      console.log(`⚙️ Server is alive on port ${PORT}`);
+      console.log(`⚙️ Server is running on port ${PORT}`);
     });
   })
   .catch((err) => {

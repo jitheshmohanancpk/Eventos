@@ -1,30 +1,40 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
-import { User, Mail, Phone, Send, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, Send, CheckCircle, Ticket } from 'lucide-react';
 
 const Booking = () => {
-  const { id } = useParams(); // ഇവന്റ് ഐഡി ലഭിക്കാൻ
+  const { id } = useParams();
   const navigate = useNavigate();
   const form = useRef();
   const [loading, setLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [bookingDetails, setBookingDetails] = useState({ eventTitle: '', ticketNumber: 0, totalRate: 0 });
+
+  useEffect(() => {
+    // Retrieve the booking data saved from EventDetails.jsx
+    const savedData = localStorage.getItem('booking_data');
+    if (savedData) {
+      setBookingDetails(JSON.parse(savedData));
+    }
+  }, []);
 
   const sendEmail = (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // നിങ്ങളുടെ EmailJS വാല്യൂസ് ഇവിടെ നൽകുക
     emailjs.sendForm(
       'service_ajyktoh', 
-      'service_t3zpyzf', 
+      'service_t3zpyzf', // Ensure this Template ID is correct
       form.current, 
       'zxa-RvNNX1CmjQCsi'
     )
     .then((result) => {
         setIsSuccess(true);
         setLoading(false);
+        localStorage.removeItem('booking_data'); // Clear storage after success
     }, (error) => {
+        console.error("Email error:", error);
         alert("Email sending failed. Please try again.");
         setLoading(false);
     });
@@ -47,12 +57,16 @@ const Booking = () => {
     <div className="min-h-screen bg-gray-50 py-20 px-6">
       <div className="max-w-xl mx-auto bg-white rounded-[40px] shadow-2xl p-10 border border-gray-100">
         <h1 className="text-4xl font-black text-slate-900 mb-2">Book Your <span className="text-indigo-600">Spot</span></h1>
-        <p className="text-slate-500 mb-10 font-medium">Please fill in your details to complete the registration.</p>
+        <p className="text-slate-500 mb-6 font-medium">Event: {bookingDetails.eventTitle}</p>
 
         <form ref={form} onSubmit={sendEmail} className="space-y-6">
-          {/* Hidden input to pass event ID if needed in email */}
+          {/* Hidden inputs to pass data to EmailJS */}
           <input type="hidden" name="event_id" value={id} />
+          <input type="hidden" name="event_title" value={bookingDetails.eventTitle} />
+          <input type="hidden" name="ticket_count" value={bookingDetails.ticketNumber} />
+          <input type="hidden" name="total_price" value={bookingDetails.totalRate} />
 
+          {/* User Fields */}
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">Full Name</label>
             <div className="relative">
@@ -82,7 +96,7 @@ const Booking = () => {
 
           <button type="submit" disabled={loading}
             className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-slate-800 transition shadow-xl disabled:opacity-50">
-            {loading ? "Processing..." : <><Send size={22} /> Confirm Booking</>}
+            {loading ? "Processing..." : <><Send size={22} /> Confirm Booking (₹{bookingDetails.totalRate})</>}
           </button>
         </form>
       </div>

@@ -5,7 +5,14 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true, select: false },
-  role: { type: String, enum: ['user', 'organizer'], default: 'user' },
+  
+  // 'attendee' is included here. Ensure your frontend sends 'attendee' in lowercase.
+  role: { 
+    type: String, 
+    enum: ['user', 'organizer', 'admin', 'attendee'], 
+    default: 'user' 
+  },
+  
   phone: { type: String, trim: true },
   organizerProfile: {
     companyName: String,
@@ -17,7 +24,6 @@ const userSchema = new mongoose.Schema({
   otpExpires: Date
 }, { timestamps: true });
 
-// Password comparison method
 userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
