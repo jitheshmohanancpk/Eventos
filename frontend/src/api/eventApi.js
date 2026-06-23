@@ -1,16 +1,17 @@
 import axios from 'axios';
 
-// Bypass VITE_API_URL and force the connection to your Render backend
+// No variables, no defaults. Force this specific path.
 const API_BASE_URL = 'https://eventos-backend-crl1.onrender.com/api';
 
 export const fetchFilteredEvents = async (filters = {}) => {
+  const url = `${API_BASE_URL}/events`;
+  console.log("DEBUG: Final URL being requested:", url); // LOOK AT CONSOLE
+
   try {
-    // This will now request: https://eventos-backend-crl1.onrender.com/api/events
-    const response = await axios.get(`${API_BASE_URL}/events`, { params: filters });
+    const response = await axios.get(url, { params: filters });
     return response.data;
   } catch (error) {
-    console.error("DEBUG - Request failed:", error.config?.url);
-    console.error("DEBUG - Error message:", error.message);
+    console.error("DEBUG: Request URL that failed:", error.config?.url);
     throw error;
   }
 };
